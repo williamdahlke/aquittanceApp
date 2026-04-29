@@ -1,98 +1,138 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  Alert,
+  Button,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
+} from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 
-export default function HomeScreen() {
+export default function App() {
+  const [id, setId] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [price, setPrice] = useState('');
+  const [serviceDescription, setServiceDescription] = useState('');
+
+  const buildPayload = () => ({
+    id: Number(id),
+    price: price ? Number(price) : undefined,
+    customerName,
+    serviceDescription,
+  });
+
+  // 🔥 função genérica pra salvar arquivo
+  const downloadAndSave = async (url: string, fileName: string) => {
+    try {
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildPayload()),
+      });
+      if (!response.ok) throw new Error('Erro na requisição');
+
+      const blob = await response.blob();
+
+      if (Platform.OS === 'web') {
+
+          const url = window.URL.createObjectURL(blob);
+
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          a.click();
+
+          window.URL.revokeObjectURL(url);
+      }
+      else
+      {
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => {
+            const data = reader.result as string;
+            resolve(data.split(',')[1]);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        const fileUri = FileSystem.documentDirectory + fileName;
+
+        await FileSystem.writeAsStringAsync(fileUri, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        await Sharing.shareAsync(fileUri);
+
+        Alert.alert('Sucesso', 'Arquivo gerado com sucesso!');
+    }
+    } catch (error) {
+      console.log(error);
+      Alert.alert('Erro', 'Falha ao gerar arquivo');
+    }
+  };
+
+  const generatePDF = async () => {
+    await downloadAndSave(
+      'https://reciboapi.onrender.com/acquittance/pdf',
+      `recibo_${id}.pdf`
+    );
+    clearForm();
+  };
+
+  const generateImage = async () => {
+    await downloadAndSave(
+      'https://reciboapi.onrender.com/acquittance/image',
+      `recibo_${id}.png`
+    );
+    clearForm();    
+  };
+
+const clearForm = () => {
+  setId('');
+  setCustomerName('');
+  setPrice('');
+  setServiceDescription('');
+};  
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <ScrollView contentContainerStyle={styles.container} style={{ flex: 1, backgroundColor: '#fff' }}>
+      <Text>Id</Text>
+      <TextInput value={id} onChangeText={setId} style={styles.input} />
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      <Text>Cliente</Text>
+      <TextInput value={customerName} onChangeText={setCustomerName} style={styles.input} />
+
+      <Text>Valor</Text>
+      <TextInput value={price} onChangeText={setPrice} style={styles.input} />
+
+      <Text>Serviço</Text>
+      <TextInput
+        value={serviceDescription}
+        onChangeText={setServiceDescription}
+        style={[styles.input, { height: 100 }]}
+        multiline
+      />
+
+      <Button title="Gerar PDF" onPress={generatePDF}  />
+      <View style={{ height: 10 }} />
+      <Button title="Gerar imagem" onPress={generateImage} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  container: { padding: 20 },
+  input: {
+    borderWidth: 1,
+    marginBottom: 15,
+    padding: 10,
+    borderRadius: 5,
   },
 });
