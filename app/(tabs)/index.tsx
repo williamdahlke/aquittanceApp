@@ -22,8 +22,8 @@ export default function App() {
   const buildPayload = () => ({
     id: Number(id),
     price: price ? Number(price) : undefined,
-    customerName,
-    serviceDescription,
+    customerName: customerName,
+    description: serviceDescription,
   });
 
   // 🔥 função genérica pra salvar arquivo
