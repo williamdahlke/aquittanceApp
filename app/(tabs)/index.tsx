@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Button,
   Platform,
@@ -18,6 +19,15 @@ export default function App() {
   const [customerName, setCustomerName] = useState('');
   const [price, setPrice] = useState('');
   const [serviceDescription, setServiceDescription] = useState('');
+  const [fieldsBlocked, setFieldsBlocked] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const API_URL = 'https://reciboapi.onrender.com/acquittance/'
+  const API_LOCAL_URL = 'https://localhost:7151/acquittance/'
+
+  useEffect(() => {
+    setFieldsBlocked(isProcessing);
+  }, [isProcessing]);
+
 
   const buildPayload = () => ({
     id: Number(id),
@@ -26,10 +36,10 @@ export default function App() {
     description: serviceDescription,
   });
 
-  // 🔥 função genérica pra salvar arquivo
   const downloadAndSave = async (url: string, fileName: string) => {
-    try {
-
+    try {      
+      setIsProcessing(true);
+      
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,11 +86,14 @@ export default function App() {
       console.log(error);
       Alert.alert('Erro', 'Falha ao gerar arquivo');
     }
+    finally{
+      setIsProcessing(false);      
+    }
   };
 
   const generatePDF = async () => {
     await downloadAndSave(
-      'https://reciboapi.onrender.com/acquittance/pdf',
+      API_URL + 'pdf',
       `recibo_${id}.pdf`
     );
     clearForm();
@@ -88,7 +101,7 @@ export default function App() {
 
   const generateImage = async () => {
     await downloadAndSave(
-      'https://reciboapi.onrender.com/acquittance/image',
+      API_URL + 'image',
       `recibo_${id}.png`
     );
     clearForm();    
@@ -104,13 +117,13 @@ const clearForm = () => {
   return (
     <ScrollView contentContainerStyle={styles.container} style={{ flex: 1, backgroundColor: '#fff' }}>
       <Text>Id</Text>
-      <TextInput value={id} onChangeText={setId} style={styles.input} />
+      <TextInput value={id} onChangeText={setId} style={styles.input} editable={!fieldsBlocked} />
 
       <Text>Cliente</Text>
-      <TextInput value={customerName} onChangeText={setCustomerName} style={styles.input} />
+      <TextInput value={customerName} onChangeText={setCustomerName} style={styles.input} editable={!fieldsBlocked}/>
 
       <Text>Valor</Text>
-      <TextInput value={price} onChangeText={setPrice} style={styles.input} />
+      <TextInput value={price} onChangeText={setPrice} style={styles.input} editable={!fieldsBlocked}/>
 
       <Text>Serviço</Text>
       <TextInput
@@ -118,11 +131,14 @@ const clearForm = () => {
         onChangeText={setServiceDescription}
         style={[styles.input, { height: 100 }]}
         multiline
+        editable={!fieldsBlocked}        
       />
 
-      <Button title="Gerar PDF" onPress={generatePDF}  />
+      <Button title="Gerar PDF" onPress={generatePDF} disabled={isProcessing}/>
       <View style={{ height: 10 }} />
-      <Button title="Gerar imagem" onPress={generateImage} />
+      <Button title="Gerar imagem" onPress={generateImage} disabled={isProcessing}/>
+
+      {isProcessing && <ActivityIndicator size="large" style={{marginTop: 10}} />}
     </ScrollView>
   );
 }
