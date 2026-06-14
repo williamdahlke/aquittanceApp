@@ -108,7 +108,7 @@ export default function App() {
   const generatePDF = async () => {
     await downloadAndSave(
       API_URL + 'pdf',
-      `recibo_${new Date().toLocaleString('pt-BR')}.pdf`
+      `recibo_${new Date().toISOString()}.pdf`
     );
     clearForm();
   };
@@ -116,7 +116,7 @@ export default function App() {
   const generateImage = async () => {
     await downloadAndSave(
       API_URL + 'image',
-      `recibo_${new Date().toLocaleString('pt-BR')}.png`
+      `recibo_${new Date().toISOString()}.png`
     );
     clearForm();    
   };
