@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Button,
@@ -10,23 +10,36 @@ import {
   View
 } from 'react-native';
 
+import { useFactory } from '@/contexts/AppDataContext';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
 export default function App() {
-  const [id, setId] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [price, setPrice] = useState('');
   const [serviceDescription, setServiceDescription] = useState('');
+  const {selectedFactory, setSelectedFactory} = useFactory();
+
+  useEffect(() => {
+    if (selectedFactory) {
+      return;
+    }
+
+    fetch('https://reciboapi.onrender.com/factory/getallfactories')
+      .then(response => response.json())
+      .then(factory => {
+        setSelectedFactory(factory[0]);
+      });
+
+  }, [selectedFactory]);  
 
   const buildPayload = () => ({
-    id: Number(id),
     price: price ? Number(price) : undefined,
     customerName: customerName,
     description: serviceDescription,
+    factory : selectedFactory
   });
 
-  // 🔥 função genérica pra salvar arquivo
   const downloadAndSave = async (url: string, fileName: string) => {
     try {
 
@@ -81,7 +94,7 @@ export default function App() {
   const generatePDF = async () => {
     await downloadAndSave(
       'https://reciboapi.onrender.com/acquittance/pdf',
-      `recibo_${id}.pdf`
+      `recibo_${new Date().toLocaleString('pt-BR')}.pdf`
     );
     clearForm();
   };
@@ -89,13 +102,12 @@ export default function App() {
   const generateImage = async () => {
     await downloadAndSave(
       'https://reciboapi.onrender.com/acquittance/image',
-      `recibo_${id}.png`
+      `recibo_${new Date().toLocaleString('pt-BR')}.png`
     );
     clearForm();    
   };
 
 const clearForm = () => {
-  setId('');
   setCustomerName('');
   setPrice('');
   setServiceDescription('');
@@ -103,9 +115,6 @@ const clearForm = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container} style={{ flex: 1, backgroundColor: '#fff' }}>
-      <Text>Id</Text>
-      <TextInput value={id} onChangeText={setId} style={styles.input} />
-
       <Text>Cliente</Text>
       <TextInput value={customerName} onChangeText={setCustomerName} style={styles.input} />
 
