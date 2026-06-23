@@ -25,7 +25,6 @@ export default function App() {
   const API_LOCAL_URL = 'https://localhost:7151/acquittance/'
   const {selectedFactory, setSelectedFactory} = useFactory();
 
-
   useEffect(() => {
     setFieldsBlocked(isProcessing);
   }, [isProcessing]);
@@ -127,7 +126,7 @@ const clearForm = () => {
   setServiceDescription('');
 };  
 
-  return (
+  return (    
     <ScrollView contentContainerStyle={styles.container} style={{ flex: 1, backgroundColor: '#fff' }}>
       <Text>Cliente</Text>
       <TextInput value={customerName} onChangeText={setCustomerName} style={styles.input} editable={!fieldsBlocked}/>
